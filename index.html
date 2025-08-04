@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Virtual Class Desk</title>
   <style>
-    /* page bg */
+    /* Page & panel backgrounds */
     body {
       font-family: sans-serif;
       margin: 0; padding: 0;
@@ -16,42 +16,60 @@
       max-width: 600px;
       margin: 2rem auto;
       padding: 1rem;
-      background: #e7f3ff; /* pale blue panel */
+      background: #e7f3ff; /* pale blue */
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     h1 { margin-top: 0; }
+
     /* Chat window */
     #log {
       border: 1px solid #ccc;
       background: #fff;
-      height: 200px;
+      height: 240px;
       overflow-y: auto;
       padding: 0.5rem;
       margin-bottom: 0.5rem;
     }
     .out {
-      background: #cce5ff; /* blue bubble */
+      background: #cce5ff;  /* student bubble */
       padding: 0.5rem;
       margin: 0.3rem 0;
       border-radius: 8px 8px 0 8px;
       text-align: right;
     }
     .in {
-      background: #ffffff; /* white bubble */
+      background: #ffffff; /* AI bubble */
       padding: 0.5rem;
       margin: 0.3rem 0;
       border-radius: 8px 8px 8px 0;
       text-align: left;
     }
-    /* Inputs */
-    input, button {
+
+    /* Inputs & buttons */
+    textarea, input, button {
       font-size: 1rem;
       padding: 0.4rem;
       border: 1px solid #aaa;
       border-radius: 4px;
     }
+    textarea {
+      width: 80%;
+      height: 60px;
+      resize: vertical;
+    }
+    input[type="file"] {
+      width: 80%;
+      margin-top: 0.5rem;
+    }
+    button {
+      margin-top: 0.5rem;
+    }
+
+    /* Quiz form */
     form { margin-top: 2rem; }
+    form input[type="file"] { width: 100%; }
+
     /* Footer */
     footer {
       margin-top: 2rem;
@@ -68,11 +86,12 @@
     <!-- Excuse-letter chatbot -->
     <h2>Submit Excuse Letter</h2>
     <div id="log"></div>
-    <input id="msg" placeholder="Type your excuse here…" style="width:80%">
+    <textarea id="msg" placeholder="Type your excuse here…"></textarea><br>
+    <input type="file" id="excuseFile" accept="image/*" /><br>
     <button id="send">Send</button>
 
     <!-- Quiz upload (file only) -->
-    <h2 style="margin-top:2rem;">Submit Quiz</h2>
+    <h2>Submit Quiz</h2>
     <form id="quizForm">
       <label>Quiz File:<br>
         <input type="file" name="quizFile" required>
@@ -86,32 +105,51 @@
   </div>
 
   <script>
+    // Point to your actual n8n webhook endpoints
     const EXCUSE_WEBHOOK = 'https://YOUR_N8N/webhook/excuse-bot';
     const QUIZ_WEBHOOK   = 'https://YOUR_N8N/webhook/quiz-upload';
     const log = document.getElementById('log');
 
-    // Chatbot
+    // Excuse chatbot
     document.getElementById('send').onclick = async () => {
-      const msgEl = document.getElementById('msg');
-      const text = msgEl.value.trim();
-      if (!text) return;
-      log.innerHTML += `<div class="out">${text}</div>`;
-      msgEl.value = '';
-      const res = await fetch(EXCUSE_WEBHOOK, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ text })
-      });
+      const msgEl   = document.getElementById('msg');
+      const fileEl  = document.getElementById('excuseFile');
+      const text    = msgEl.value.trim();
+      const fileObj = fileEl.files[0];
+
+      if (!text && !fileObj) {
+        alert('Please type an excuse or attach a photo.');
+        return;
+      }
+
+      // show student message
+      if (text) {
+        log.innerHTML += `<div class="out">${text}</div>`;
+        msgEl.value = '';
+      }
+      // show attached image
+      if (fileObj) {
+        const url = URL.createObjectURL(fileObj);
+        log.innerHTML += `<div class="out"><img src="${url}" style="max-width:200px;"/></div>`;
+      }
+
+      // send to n8n
+      const data = new FormData();
+      data.append('text', text);
+      if (fileObj) data.append('file', fileObj, fileObj.name);
+
+      const res = await fetch(EXCUSE_WEBHOOK, { method:'POST', body:data });
       const { reply } = await res.json();
       log.innerHTML += `<div class="in">${reply}</div>`;
       log.scrollTop = log.scrollHeight;
+      fileEl.value = '';
     };
 
     // Quiz upload
     document.getElementById('quizForm').onsubmit = async e => {
       e.preventDefault();
       const data = new FormData(e.target);
-      const res = await fetch(QUIZ_WEBHOOK, { method:'POST', body:data });
+      const res  = await fetch(QUIZ_WEBHOOK, { method:'POST', body:data });
       const json = await res.json();
       alert(json.status || 'Uploaded!');
       e.target.reset();
