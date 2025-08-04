@@ -1,54 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Student Portal</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Virtual Class Desk</title>
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 1rem; }
-    section { margin-bottom: 2rem; }
-    #log { border: 1px solid #ccc; padding: .5rem; height: 200px; overflow-y: auto; }
-    .out { text-align: right; }
-    .in  { text-align: left; color: blue; }
+    /* page bg */
+    body {
+      font-family: sans-serif;
+      margin: 0; padding: 0;
+      background: #f0f0f0; /* light gray */
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: #e7f3ff; /* pale blue panel */
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { margin-top: 0; }
+    /* Chat window */
+    #log {
+      border: 1px solid #ccc;
+      background: #fff;
+      height: 200px;
+      overflow-y: auto;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .out {
+      background: #cce5ff; /* blue bubble */
+      padding: 0.5rem;
+      margin: 0.3rem 0;
+      border-radius: 8px 8px 0 8px;
+      text-align: right;
+    }
+    .in {
+      background: #ffffff; /* white bubble */
+      padding: 0.5rem;
+      margin: 0.3rem 0;
+      border-radius: 8px 8px 8px 0;
+      text-align: left;
+    }
+    /* Inputs */
+    input, button {
+      font-size: 1rem;
+      padding: 0.4rem;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+    }
+    form { margin-top: 2rem; }
+    /* Footer */
+    footer {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      text-align: center;
+      color: #666;
+    }
   </style>
 </head>
 <body>
-  <h1>Student Portal</h1>
+  <div class="container">
+    <h1>Virtual Class Desk</h1>
 
-  <!-- 1) Chatbot for excuses -->
-  <section id="chatbot">
+    <!-- Excuse-letter chatbot -->
     <h2>Submit Excuse Letter</h2>
     <div id="log"></div>
     <input id="msg" placeholder="Type your excuse here…" style="width:80%">
     <button id="send">Send</button>
-  </section>
 
-  <!-- 2) Quiz upload form -->
-  <section id="quiz">
-    <h2>Submit Quiz</h2>
+    <!-- Quiz upload (file only) -->
+    <h2 style="margin-top:2rem;">Submit Quiz</h2>
     <form id="quizForm">
-      <label>Student Name:<br><input name="student" required></label><br><br>
-      <label>Section:<br><input name="section" required></label><br><br>
-      <label>Quiz File:<br><input type="file" name="quizFile" required></label><br><br>
+      <label>Quiz File:<br>
+        <input type="file" name="quizFile" required>
+      </label><br><br>
       <button type="submit">Upload Quiz</button>
     </form>
-  </section>
+
+    <footer>
+      Created by: Louise Robert Segura, CPA, CMA
+    </footer>
+  </div>
 
   <script>
-    // Replace with your actual n8n webhook URLs
     const EXCUSE_WEBHOOK = 'https://YOUR_N8N/webhook/excuse-bot';
     const QUIZ_WEBHOOK   = 'https://YOUR_N8N/webhook/quiz-upload';
-
-    // Chatbot logic
     const log = document.getElementById('log');
+
+    // Chatbot
     document.getElementById('send').onclick = async () => {
-      const text = document.getElementById('msg').value.trim();
+      const msgEl = document.getElementById('msg');
+      const text = msgEl.value.trim();
       if (!text) return;
       log.innerHTML += `<div class="out">${text}</div>`;
-      document.getElementById('msg').value = '';
+      msgEl.value = '';
       const res = await fetch(EXCUSE_WEBHOOK, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ text })
       });
       const { reply } = await res.json();
@@ -56,11 +107,11 @@
       log.scrollTop = log.scrollHeight;
     };
 
-    // Quiz upload logic
+    // Quiz upload
     document.getElementById('quizForm').onsubmit = async e => {
       e.preventDefault();
       const data = new FormData(e.target);
-      const res = await fetch(QUIZ_WEBHOOK, { method: 'POST', body: data });
+      const res = await fetch(QUIZ_WEBHOOK, { method:'POST', body:data });
       const json = await res.json();
       alert(json.status || 'Uploaded!');
       e.target.reset();
