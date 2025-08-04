@@ -47,7 +47,7 @@
     }
 
     /* Inputs & buttons */
-    textarea, input, button {
+    textarea, input[type="file"], button {
       font-size: 1rem;
       padding: 0.4rem;
       border: 1px solid #aaa;
@@ -105,53 +105,53 @@
   </div>
 
   <script>
-    // Point to your actual n8n webhook endpoints
-    const EXCUSE_WEBHOOK = 'https://YOUR_N8N/webhook/excuse-bot';
-    const QUIZ_WEBHOOK   = 'https://YOUR_N8N/webhook/quiz-upload';
+    // Your single Apps Script endpoint for both uploads:
+    const UPLOAD_URL = 'https://script.google.com/macros/s/AKfycbwFrRBvNPEFSmvYcPdVllTUTe63K7oT3SSv8VCZ0ocnndr8jCXxog7qPVlISbIZ-sP0SQ/exec';
     const log = document.getElementById('log');
 
-    // Excuse chatbot
+    // Excuse-letter handler
     document.getElementById('send').onclick = async () => {
-      const msgEl   = document.getElementById('msg');
-      const fileEl  = document.getElementById('excuseFile');
-      const text    = msgEl.value.trim();
-      const fileObj = fileEl.files[0];
-
+      const textEl   = document.getElementById('msg');
+      const fileEl   = document.getElementById('excuseFile');
+      const text     = textEl.value.trim();
+      const fileObj  = fileEl.files[0];
       if (!text && !fileObj) {
         alert('Please type an excuse or attach a photo.');
         return;
       }
 
-      // show student message
+      // Show user text bubble
       if (text) {
         log.innerHTML += `<div class="out">${text}</div>`;
-        msgEl.value = '';
+        textEl.value = '';
       }
-      // show attached image
+      // Show image preview bubble
       if (fileObj) {
         const url = URL.createObjectURL(fileObj);
         log.innerHTML += `<div class="out"><img src="${url}" style="max-width:200px;"/></div>`;
       }
 
-      // send to n8n
+      // Build and send FormData
       const data = new FormData();
       data.append('text', text);
-      if (fileObj) data.append('file', fileObj, fileObj.name);
+      if (fileObj) data.append('excuseFile', fileObj, fileObj.name);
 
-      const res = await fetch(EXCUSE_WEBHOOK, { method:'POST', body:data });
-      const { reply } = await res.json();
+      const res = await fetch(UPLOAD_URL, { method: 'POST', body: data });
+      const json = await res.json();
+      const reply = json.reply || 'Excuse received!';
       log.innerHTML += `<div class="in">${reply}</div>`;
       log.scrollTop = log.scrollHeight;
       fileEl.value = '';
     };
 
-    // Quiz upload
+    // Quiz-upload handler
     document.getElementById('quizForm').onsubmit = async e => {
       e.preventDefault();
       const data = new FormData(e.target);
-      const res  = await fetch(QUIZ_WEBHOOK, { method:'POST', body:data });
+      // Note: form field name must be 'quizFile'
+      const res  = await fetch(UPLOAD_URL, { method: 'POST', body: data });
       const json = await res.json();
-      alert(json.status || 'Uploaded!');
+      alert(json.quizUrl ? `Uploaded! View: ${json.quizUrl}` : 'Uploaded!');
       e.target.reset();
     };
   </script>
