@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Portal</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 1rem; }
+    section { margin-bottom: 2rem; }
+    #log { border: 1px solid #ccc; padding: .5rem; height: 200px; overflow-y: auto; }
+    .out { text-align: right; }
+    .in  { text-align: left; color: blue; }
+  </style>
+</head>
+<body>
+  <h1>Student Portal</h1>
+
+  <!-- 1) Chatbot for excuses -->
+  <section id="chatbot">
+    <h2>Submit Excuse Letter</h2>
+    <div id="log"></div>
+    <input id="msg" placeholder="Type your excuse here…" style="width:80%">
+    <button id="send">Send</button>
+  </section>
+
+  <!-- 2) Quiz upload form -->
+  <section id="quiz">
+    <h2>Submit Quiz</h2>
+    <form id="quizForm">
+      <label>Student Name:<br><input name="student" required></label><br><br>
+      <label>Section:<br><input name="section" required></label><br><br>
+      <label>Quiz File:<br><input type="file" name="quizFile" required></label><br><br>
+      <button type="submit">Upload Quiz</button>
+    </form>
+  </section>
+
+  <script>
+    // Replace with your actual n8n webhook URLs
+    const EXCUSE_WEBHOOK = 'https://YOUR_N8N/webhook/excuse-bot';
+    const QUIZ_WEBHOOK   = 'https://YOUR_N8N/webhook/quiz-upload';
+
+    // Chatbot logic
+    const log = document.getElementById('log');
+    document.getElementById('send').onclick = async () => {
+      const text = document.getElementById('msg').value.trim();
+      if (!text) return;
+      log.innerHTML += `<div class="out">${text}</div>`;
+      document.getElementById('msg').value = '';
+      const res = await fetch(EXCUSE_WEBHOOK, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text })
+      });
+      const { reply } = await res.json();
+      log.innerHTML += `<div class="in">${reply}</div>`;
+      log.scrollTop = log.scrollHeight;
+    };
+
+    // Quiz upload logic
+    document.getElementById('quizForm').onsubmit = async e => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      const res = await fetch(QUIZ_WEBHOOK, { method: 'POST', body: data });
+      const json = await res.json();
+      alert(json.status || 'Uploaded!');
+      e.target.reset();
+    };
+  </script>
+</body>
+</html>
